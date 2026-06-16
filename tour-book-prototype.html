@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tour Book — Tenant Rep Prototype</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<style>
+  :root{
+    --bg:#eef1f5; --panel:#fff; --ink:#2b3440; --muted:#697586;
+    --line:#e2e6ec; --brand:#235a93; --brand2:#2b7fd4; --accent:#2f6fb0;
+    --love:#2f9e6b; --maybe:#e08a2b; --pass:#9aa3af; --soft:#eef3fb;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.45}
+  .app{display:flex;min-height:100vh}
+  .side{width:222px;background:#586676;color:#e3e8ef;flex-shrink:0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+  .logo{padding:20px 20px 16px;font-weight:700;font-size:17px;color:#fff;border-bottom:1px solid rgba(255,255,255,.14)}
+  .logo span{color:#a9cbf2}
+  .nav{padding:10px 8px;flex:1}
+  .nav a{display:flex;align-items:center;gap:10px;padding:10px 12px;margin:2px 0;border-radius:8px;color:#cdd5e0;text-decoration:none;cursor:pointer;font-weight:500}
+  .nav a:hover{background:rgba(255,255,255,.10);color:#fff}
+  .nav a.on{background:var(--brand2);color:#fff}
+  .nav .ic{width:18px;text-align:center;opacity:.9}
+  .side .foot{padding:14px 18px;font-size:12px;color:#aab4c2;border-top:1px solid rgba(255,255,255,.14)}
+  .main{flex:1;min-width:0}
+  .top{background:var(--panel);border-bottom:1px solid var(--line);padding:14px 26px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:5}
+  .top h1{font-size:18px;margin:0}.top .sub{color:var(--muted);font-size:12.5px;margin-top:2px}
+  .btn{background:var(--brand2);color:#fff;border:none;padding:8px 14px;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px}
+  .btn:hover{background:var(--brand)}
+  .btn.ghost{background:#fff;color:var(--brand);border:1px solid var(--line)}.btn.ghost:hover{background:var(--soft)}
+  .wrap{padding:24px 26px;max-width:1080px}
+  .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .card .k{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+  .card .v{font-size:26px;font-weight:700;margin-top:6px}.card .d{font-size:12px;margin-top:4px;color:var(--brand2);font-weight:600}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:20px}
+  .panel h2{font-size:15px;margin:0 0 14px}.panel h2 .small{font-weight:500;color:var(--muted);font-size:12px}
+  .row{display:flex;gap:20px}.row>*{flex:1}
+  .tgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+  .tour{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;cursor:pointer;transition:.15s}
+  .tour:hover{box-shadow:0 6px 20px rgba(20,40,60,.12);transform:translateY(-2px)}
+  .tour .cl{font-weight:700;font-size:15px}.tour .need{color:var(--muted);font-size:12.5px;margin:4px 0 10px;line-height:1.4}
+  .tour .meta{display:flex;gap:14px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
+  .tour .meta b{color:var(--ink)}
+  .badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;color:#fff}
+  .b-scheduled{background:var(--brand2)}.b-active{background:var(--love)}.b-done{background:var(--pass)}
+  .fb{display:inline-block;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;padding:2px 8px;border-radius:12px;color:#fff}
+  .fb-love{background:var(--love)}.fb-maybe{background:var(--maybe)}.fb-pass{background:var(--pass)}.fb-none{background:#c4cdd6}
+  .crumb{color:var(--muted);font-size:12.5px;cursor:pointer;margin-bottom:8px;display:inline-block}.crumb:hover{color:var(--brand)}
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:16px 0 18px;flex-wrap:wrap}
+  .tabs button{background:none;border:none;padding:10px 16px;font-size:13.5px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+  .tabs button.on{color:var(--brand);border-bottom-color:var(--brand)}
+  .sgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+  .space{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;display:flex;flex-direction:column}
+  .space .ph{height:150px;background-size:cover;background-position:center;position:relative}
+  .space .ph .num{position:absolute;top:10px;left:10px;background:var(--brand);color:#fff;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+  .space .ph .fb{position:absolute;top:10px;right:10px}
+  .space .b{padding:13px 14px;flex:1;display:flex;flex-direction:column}
+  .space .addr{font-weight:700}.space .meta{color:var(--muted);font-size:12.5px;margin:3px 0 8px}
+  .space .sp{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);margin-bottom:10px}
+  .space .sp b{color:var(--ink)}
+  .space .rate{font-weight:700;color:var(--brand);margin-bottom:8px}
+  .space .fbrow{display:flex;gap:6px;margin-top:auto}
+  .fbtn{flex:1;border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 0;font-size:12px;font-weight:600;cursor:pointer;color:var(--muted)}
+  .fbtn:hover{background:var(--soft)}
+  .fbtn.on-love{background:var(--love);color:#fff;border-color:var(--love)}
+  .fbtn.on-maybe{background:var(--maybe);color:#fff;border-color:var(--maybe)}
+  .fbtn.on-pass{background:var(--pass);color:#fff;border-color:var(--pass)}
+  .stars{color:var(--maybe);font-size:15px;letter-spacing:1px;cursor:pointer}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.3px}
+  .cmp td{text-align:center}.cmp td:first-child,.cmp th:first-child{text-align:left;color:var(--muted);font-weight:600}
+  .cmp .best{background:#e8f4ec;font-weight:700}
+  .map{position:relative;z-index:0;height:340px;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:#e7ebf0}
+  .map .leaflet-container{height:100%;width:100%;border-radius:10px}
+  .itin{position:relative;padding-left:26px}
+  .itin:before{content:"";position:absolute;left:9px;top:6px;bottom:6px;width:2px;background:var(--line)}
+  .stop{position:relative;padding:0 0 16px}
+  .stop:before{content:attr(data-n);position:absolute;left:-26px;top:0;width:20px;height:20px;border-radius:50%;background:var(--brand);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .stop .t{font-weight:700}.stop .a{color:var(--muted);font-size:12.5px}
+  .gen{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  .gen .tile{border:1px solid var(--line);border-radius:10px;padding:18px;text-align:center;background:var(--soft)}
+  .gen .tile .ic2{font-size:30px}.gen .tile h3{margin:8px 0 4px;font-size:14px}.gen .tile p{margin:0 0 12px;color:var(--muted);font-size:12px;min-height:32px}
+  .preview{margin-top:16px;border:1px dashed var(--line);border-radius:10px;display:none}.preview.show{display:block}
+  .pillbar{display:flex;gap:8px;align-items:center;background:var(--soft);border:1px solid #cfe0f0;color:var(--brand);padding:8px 12px;border-radius:8px;font-size:12.5px;margin:12px 14px}
+  .frm{display:grid;grid-template-columns:repeat(2,1fr);gap:14px 22px}
+  .frm label{display:flex;flex-direction:column;font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.3px;gap:5px}
+  .frm input,.frm select{padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-family:inherit;color:var(--ink);text-transform:none;font-weight:500;background:#fff}
+  .modal{position:fixed;inset:0;background:rgba(20,30,40,.5);z-index:2000;display:none;flex-direction:column}
+  .modal.show{display:flex}
+  .modal .mbar{background:var(--ink);color:#fff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .modal .mbar .btn{background:transparent;border:1px solid rgba(255,255,255,.4)}
+  .modal .stage{flex:1;overflow:auto;display:flex;justify-content:center;padding:20px;background:#5b6b62}
+  .modal iframe{border:none;background:#fff;box-shadow:0 8px 30px rgba(0,0,0,.35)}
+  .qa{position:fixed;inset:0;background:rgba(20,30,40,.45);z-index:2100;display:none;align-items:center;justify-content:center}
+  .qa.show{display:flex}
+  .qa .box{background:#fff;border-radius:12px;width:440px;max-width:94vw;padding:18px}
+  .qa .box h3{margin:0 0 12px;font-size:15px}
+  .qa .box .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+  .note{font-size:11.5px;color:var(--muted);font-style:italic;margin-top:6px}
+  .toast{position:fixed;bottom:22px;right:22px;background:var(--ink);color:#fff;padding:12px 18px;border-radius:10px;font-size:13px;opacity:0;transform:translateY(10px);transition:.25s;z-index:3000;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+  .toast.show{opacity:1;transform:translateY(0)}
+  .hide{display:none}
+  @media (max-width:760px){
+    .app{flex-direction:column}
+    .side{width:100%;height:auto;position:sticky;top:0;flex-direction:row;align-items:center;overflow-x:auto}
+    .logo{padding:12px 14px;border-bottom:none;white-space:nowrap}.nav{display:flex;padding:6px;flex:1}.nav a{white-space:nowrap;margin:0}.nav .ic{display:none}.side .foot{display:none}
+    .top{position:static}.wrap{padding:14px}
+    .cards{grid-template-columns:repeat(2,1fr)}.tgrid,.sgrid,.gen{grid-template-columns:1fr}.row{flex-direction:column;gap:0}.frm{grid-template-columns:1fr}
+    .map{height:260px}.tabs{flex-wrap:nowrap;overflow-x:auto}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="logo">Tour<span>Book</span></div>
+    <nav class="nav">
+      <a data-action="nav" data-view="dashboard" class="on"><span class="ic">▦</span> Dashboard</a>
+      <a data-action="nav" data-view="tours"><span class="ic">🧭</span> Tours</a>
+    </nav>
+    <div class="foot">Prototype · sample data<br>Tenant-rep / industrial</div>
+  </aside>
+  <div class="main">
+    <div class="top">
+      <div><h1 id="ttl">Dashboard</h1><div class="sub" id="sub">Your tenant tours at a glance</div></div>
+      <button class="btn" id="newbtn" data-action="newtour" style="display:none">＋ New Tour</button>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="wrap view" id="v-dashboard">
+      <div class="cards">
+        <div class="card"><div class="k">Active Tours</div><div class="v" id="dk-tours">—</div><div class="d">in progress</div></div>
+        <div class="card"><div class="k">Spaces Touring</div><div class="v" id="dk-spaces">—</div><div class="d">across all clients</div></div>
+        <div class="card"><div class="k">Next Tour</div><div class="v" id="dk-next" style="font-size:16px">—</div><div class="d" id="dk-nextcl">—</div></div>
+        <div class="card"><div class="k">Client "Love" Picks</div><div class="v" id="dk-love">—</div><div class="d">spaces shortlisted</div></div>
+      </div>
+      <div class="panel">
+        <h2>Candidate Spaces Map <span class="small">— every space across your tours, colored by client feedback</span></h2>
+        <div class="map" id="map-board"></div>
+        <div style="display:flex;gap:16px;margin-top:12px;font-size:12px;color:var(--muted)">
+          <span><span class="fb fb-love" style="padding:1px 7px">Love</span></span>
+          <span><span class="fb fb-maybe" style="padding:1px 7px">Maybe</span></span>
+          <span><span class="fb fb-pass" style="padding:1px 7px">Pass</span></span>
+          <span><span class="fb fb-none" style="padding:1px 7px">No feedback</span></span>
+        </div>
+      </div>
+      <div class="row">
+        <div class="panel"><h2>Upcoming Tours</h2><div id="dash-upcoming"></div></div>
+        <div class="panel"><h2>Recent Client Feedback</h2><div id="dash-feedback"></div></div>
+      </div>
+    </div>
+
+    <!-- TOURS LIST -->
+    <div class="wrap view hide" id="v-tours">
+      <div class="tgrid" id="tour-grid"></div>
+    </div>
+
+    <!-- TOUR DETAIL -->
+    <div class="wrap view hide" id="v-tour">
+      <span class="crumb" data-action="nav" data-view="tours">← All tours</span>
+      <div class="panel">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
+          <div>
+            <h2 id="t-client" style="font-size:18px;margin:0 0 2px"></h2>
+            <div class="sub" id="t-need" style="color:var(--muted);max-width:560px"></div>
+          </div>
+          <div style="text-align:right"><span id="t-badge"></span><div class="sub" id="t-date" style="margin-top:6px"></div></div>
+        </div>
+        <div class="tabs" id="t-tabs">
+          <button class="on" data-action="ttab" data-tab="spaces">Spaces</button>
+          <button data-action="ttab" data-tab="compare">Compare</button>
+          <button data-action="ttab" data-tab="itinerary">Itinerary</button>
+          <button data-action="ttab" data-tab="book">Tour Book</button>
+        </div>
+
+        <div class="ttab" id="tt-spaces">
+          <div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button class="btn" data-action="addspace">＋ Add space</button></div>
+          <div class="sgrid" id="space-grid"></div>
+        </div>
+
+        <div class="ttab hide" id="tt-compare">
+          <div style="overflow-x:auto"><table class="cmp" id="cmp-table"></table></div>
+          <p class="note">Best value per row is highlighted. Rates compared on a $/SF basis.</p>
+        </div>
+
+        <div class="ttab hide" id="tt-itinerary">
+          <div class="row">
+            <div style="flex:1.1"><div class="itin" id="itin-list"></div></div>
+            <div style="flex:1.3"><div class="map" id="tour-map"></div></div>
+          </div>
+        </div>
+
+        <div class="ttab hide" id="tt-book">
+          <div class="gen">
+            <div class="tile"><div class="ic2">📕</div><h3>Tour Book (PDF)</h3><p>Branded book — cover, one page per space, comparison matrix.</p><button class="btn" data-action="genbook" data-kind="book">Generate</button></div>
+            <div class="tile"><div class="ic2">🌐</div><h3>Client Microsite</h3><p>Shareable page where your client rates &amp; comments on each space.</p><button class="btn" data-action="genbook" data-kind="site">Generate</button></div>
+          </div>
+          <div class="preview" id="gen-out">
+            <div class="pillbar" id="gen-pill"></div>
+            <div style="padding:0 14px 14px">
+              <div style="display:flex;gap:8px;margin:0 0 10px;flex-wrap:wrap">
+                <button class="btn" data-action="genopen">Open full size ↗</button>
+                <button class="btn ghost" data-action="gencopy" id="gen-copy" style="display:none">Copy share link</button>
+              </div>
+              <iframe id="gen-frame" title="preview" style="width:100%;height:540px;border:1px solid var(--line);border-radius:8px;background:#fff"></iframe>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="file-input" accept="image/*" style="display:none">
+<div class="qa" id="addspace-modal"><div class="box">
+  <h3>Add Space to Tour</h3>
+  <div class="frm">
+    <label>Address<input id="s-addr" placeholder="e.g. 1900 Trade Ct"></label>
+    <label>City<input id="s-city" placeholder="e.g. Fremont, CA"></label>
+    <label>Type<select id="s-type"><option>Warehouse / Distribution</option><option>Manufacturing</option><option>Flex / R&D</option><option>Industrial Outdoor Storage</option></select></label>
+    <label>Available SF<input id="s-sf" placeholder="e.g. 22,000"></label>
+    <label>Asking Rate<input id="s-rate" placeholder="e.g. $1.45 / SF / Mo NNN"></label>
+    <label>Clear Height<input id="s-clear" placeholder="e.g. 28'"></label>
+    <label>Dock Doors<input id="s-docks" placeholder="e.g. 8"></label>
+    <label>Power<input id="s-power" placeholder="e.g. 2,000A"></label>
+    <label>Tour time<input id="s-time" placeholder="e.g. 10:30 AM"></label>
+  </div>
+  <div class="actions"><button class="btn ghost" data-action="ascancel">Cancel</button><button class="btn" data-action="assave">Add space</button></div>
+</div></div>
+
+<div class="qa" id="tour-modal"><div class="box">
+  <h3>New Tour</h3>
+  <div class="frm">
+    <label>Client (company)<input id="nt-client" placeholder="e.g. Helix Robotics"></label>
+    <label>Contact<input id="nt-contact" placeholder="e.g. Jordan Lee"></label>
+    <label>Tour date<input id="nt-date" placeholder="e.g. Thu, Jun 25 · 10:00 AM"></label>
+    <label>Requirement<input id="nt-need" placeholder="e.g. 20–30k SF flex, Fremont, <$1.80 NNN"></label>
+  </div>
+  <div class="actions"><button class="btn ghost" data-action="ntcancel">Cancel</button><button class="btn" data-action="ntsave">Create tour</button></div>
+</div></div>
+
+<div class="modal" id="gen-modal"><div class="mbar"><span id="gen-modal-title">Full size</span><span style="display:flex;gap:8px"><button class="btn" data-action="genprint">🖨 Print / PDF</button><button class="btn" data-action="genclose">✕ Close</button></span></div><div class="stage"><iframe id="gen-modal-frame"></iframe></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const BRAND={firm:'Reyes Tenant Advisory',accent:'#235a93',accent2:'#2b7fd4',ink:'#2b3440'};
+const REP={name:'Marcus Reyes',phone:'(510) 555-0188',email:'marcus@reyestenant.com'};
+const PHOTOS=['photo-1758789667762-56175fe4601c','photo-1761805618757-9d2b9552ee32','photo-1764725241339-4d2f0e2a4903','photo-1726776230751-183496c51f00','photo-1726776230760-ae81dc9d4e55','photo-1717662292794-51cc6ab54a00','photo-1769441772946-c91a56c00524','photo-1618522786784-88c35429eb7a','photo-1776179806507-b70623e680a2'];
+const U=id=>`https://images.unsplash.com/${id}?fm=jpg&q=70&w=900&auto=format&fit=crop`;
+const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const escA=s=>(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+
+function sp(addr,city,type,sf,rate,clear,docks,power,office,parking,time,lat,lng,rating,fb,notes,ph){
+  return {addr,city,type,sf,rate,clear,docks,power,office,parking,time,lat,lng,rating,fb,notes,ph:U(PHOTOS[ph])};
+}
+const tours=[
+ {id:0, client:'Helix Robotics', contact:'Jordan Lee', need:'20,000–28,000 SF Flex/R&D · Fremont / Newark · under $1.80 SF NNN · 24′ clear · heavy power', date:'Thu, Jun 18 · 9:30 AM', status:'scheduled',
+   spaces:[
+     sp('1801 Zephyr Ave','Fremont, CA','Flex / R&D','28,000','$1.60 / SF / Mo NNN','24′','4','1,200A','40% built-out','3.2/1,000','9:30 AM',37.512,-121.962,5,'love','Loves the lab buildout + corner exposure. Wants to revisit with their ops lead.',8),
+     sp('2200 Doolittle Dr','Oakland, CA','Warehouse / Distribution','24,000','$1.35 / SF / Mo NNN','32′','6','2,000A','15%','40 auto','10:45 AM',37.732,-122.197,3,'maybe','Great power but more warehouse than they need; office is thin.',0),
+     sp('6400 Brisa St','Hayward, CA','Manufacturing','22,000','$1.45 / SF / Mo NNN','24′','6','4,000A heavy','25%','60 auto','12:15 PM',37.632,-122.103,2,'pass','Too much manufacturing infra, longer commute for the team.',2),
+   ]},
+ {id:1, client:'Coastal Distribution Co', contact:'Marie Alvarez', need:'80,000–120,000 SF Distribution · I-880 corridor · 32′+ clear · trailer parking', date:'Tue, Jun 23 · 1:00 PM', status:'active',
+   spaces:[
+     sp('44 Whipple Rd','Union City, CA','Warehouse / Distribution','120,000','$1.05 / SF / Mo NNN','36′','24','3,000A','6,000 SF','32 trailer','1:00 PM',37.606,-122.049,4,'love','Trailer parking + 36′ clear checks every box. Front-runner.',1),
+     sp('4500 Tractor Rd','Tracy, CA','Warehouse / Distribution','110,000','$0.78 / SF / Mo NNN','40′','60','4,000A','8,000 SF','80 trailer','2:30 PM',37.739,-121.434,3,'maybe','Cheapest by far but Tracy is a stretch for their labor pool.',3),
+   ]},
+ {id:2, client:'Northgate Outdoor', contact:'Sam Pell', need:'2–4 acre IOS yard · East Bay · paved & fenced · small shop', date:'Fri, Jun 27 · 11:00 AM', status:'scheduled',
+   spaces:[
+     sp('2950 Goodrick Ave','Richmond, CA','Industrial Outdoor Storage','3.2 acres','$0.35 / SF / Mo','—','0','To 1,000A','2,400 SF shop','Yard','11:00 AM',37.951,-122.358,0,'','Not yet toured.',5),
+   ]},
+];
+const FBLABEL={love:'Love it',maybe:'Maybe',pass:'Pass','':'No feedback'};
+const num=s=>parseInt((s||'').replace(/[^0-9.]/g,''))||0;
+
+let cur=0, leafMap=null, markerLayer=null, tourMap=null, tourLayer=null, lastGen={html:'',kind:'',name:''};
+
+// ---- nav ----
+function go(v){
+  document.querySelectorAll('.view').forEach(x=>x.classList.add('hide'));
+  document.getElementById('v-'+v).classList.remove('hide');
+  document.querySelectorAll('.nav a').forEach(a=>a.classList.toggle('on',a.dataset.view===v));
+  document.getElementById('newbtn').style.display=(v==='tours')?'':'none';
+  if(v==='dashboard'){setTop('Dashboard','Your tenant tours at a glance');renderDash();}
+  if(v==='tours'){setTop('Tours',tours.length+' active tenant tours');renderTours();}
+  window.scrollTo(0,0);
+}
+function setTop(t,s){document.getElementById('ttl').textContent=t;document.getElementById('sub').textContent=s;}
+
+// ---- dashboard ----
+function allSpaces(){ const a=[]; tours.forEach(t=>t.spaces.forEach(s=>a.push({t,s}))); return a; }
+function renderDash(){
+  const spaces=allSpaces();
+  document.getElementById('dk-tours').textContent=tours.length;
+  document.getElementById('dk-spaces').textContent=spaces.length;
+  document.getElementById('dk-love').textContent=spaces.filter(x=>x.s.fb==='love').length;
+  const next=tours[0];
+  document.getElementById('dk-next').textContent=next.date.split(' · ')[0];
+  document.getElementById('dk-nextcl').textContent=next.client;
+  document.getElementById('dash-upcoming').innerHTML=tours.map(t=>`<div style="padding:9px 0;border-bottom:1px solid var(--line);cursor:pointer" data-action="opent" data-id="${t.id}"><b>${esc(t.client)}</b> <span class="badge b-${t.status}" style="font-size:10px">${t.status}</span><div style="color:var(--muted);font-size:12.5px">${esc(t.date)} · ${t.spaces.length} spaces</div></div>`).join('');
+  const fbs=spaces.filter(x=>x.s.fb).slice(0,5);
+  document.getElementById('dash-feedback').innerHTML=fbs.length?fbs.map(x=>`<div style="padding:9px 0;border-bottom:1px solid var(--line)"><span class="fb fb-${x.s.fb}">${FBLABEL[x.s.fb]}</span> <b>${esc(x.s.addr)}</b><div style="color:var(--muted);font-size:12.5px">${esc(x.t.client)} — ${esc(x.s.notes)}</div></div>`).join(''):'<p class="note">No feedback yet.</p>';
+  renderMap();
+}
+function fbColor(f){return f==='love'?'#2f9e6b':f==='maybe'?'#e08a2b':f==='pass'?'#9aa3af':'#c4cdd6';}
+function renderMap(){
+  const el=document.getElementById('map-board');
+  if(typeof L==='undefined'){el.innerHTML='<div style="padding:24px;color:var(--muted)">Open in a browser to load the live map.</div>';return;}
+  if(!leafMap){ el.innerHTML=''; leafMap=L.map(el,{scrollWheelZoom:false}).setView([37.7,-121.9],9);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(leafMap); markerLayer=L.layerGroup().addTo(leafMap); }
+  markerLayer.clearLayers(); const pts=[];
+  allSpaces().forEach(({t,s})=>{ if(!s.lat)return; const m=L.circleMarker([s.lat,s.lng],{radius:9,color:'#fff',weight:2,fillColor:fbColor(s.fb),fillOpacity:1});
+    m.bindTooltip(`${esc(s.addr)} · ${esc(t.client)} (${FBLABEL[s.fb]})`); m.on('click',()=>openTour(t.id)); markerLayer.addLayer(m); pts.push([s.lat,s.lng]); });
+  if(pts.length) leafMap.fitBounds(pts,{padding:[34,34],maxZoom:11}); setTimeout(()=>leafMap.invalidateSize(),60);
+}
+
+// ---- tours list ----
+function renderTours(){
+  document.getElementById('tour-grid').innerHTML=tours.map(t=>{
+    const fb=t.spaces.filter(s=>s.fb==='love').length;
+    return `<div class="tour" data-action="opent" data-id="${t.id}">
+      <div style="display:flex;justify-content:space-between;align-items:center"><span class="cl">${esc(t.client)}</span><span class="badge b-${t.status}">${t.status}</span></div>
+      <div class="need">${esc(t.need)}</div>
+      <div class="meta"><span><b>${t.spaces.length}</b> spaces</span><span><b>${fb}</b> ❤ love</span><span>📅 ${esc(t.date)}</span></div>
+    </div>`;}).join('');
+}
+
+// ---- tour detail ----
+function openTour(id){
+  cur=id; const t=tours[id];
+  go('tours'); document.querySelectorAll('.view').forEach(x=>x.classList.add('hide'));
+  document.getElementById('v-tour').classList.remove('hide');
+  document.querySelectorAll('.nav a').forEach(a=>a.classList.toggle('on',a.dataset.view==='tours'));
+  setTop('Tour',t.client);
+  document.getElementById('t-client').textContent=t.client+' · '+t.contact;
+  document.getElementById('t-need').textContent=t.need;
+  document.getElementById('t-badge').innerHTML=`<span class="badge b-${t.status}">${t.status}</span>`;
+  document.getElementById('t-date').textContent='📅 '+t.date;
+  ttab('spaces'); document.getElementById('gen-out').classList.remove('show');
+  window.scrollTo(0,0);
+}
+function ttab(tab){
+  document.querySelectorAll('#t-tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
+  ['spaces','compare','itinerary','book'].forEach(x=>document.getElementById('tt-'+x).classList.toggle('hide',x!==tab));
+  if(tab==='spaces') renderSpaces();
+  if(tab==='compare') renderCompare();
+  if(tab==='itinerary') renderItin();
+}
+function renderSpaces(){
+  const t=tours[cur];
+  document.getElementById('space-grid').innerHTML=t.spaces.map((s,i)=>`
+    <div class="space">
+      <div class="ph" style="background-image:url('${s.ph}')"><span class="num">${i+1}</span><span class="fb fb-${s.fb||'none'}">${FBLABEL[s.fb]}</span></div>
+      <div class="b">
+        <div class="addr">${esc(s.addr)}</div>
+        <div class="meta">${esc(s.city)} · ${esc(s.type)}</div>
+        <div class="rate">${esc(s.rate)} · ${esc(s.sf)} SF</div>
+        <div class="sp"><span><b>${esc(s.clear)}</b> clear</span><span><b>${esc(s.docks)}</b> docks</span><span><b>${esc(s.power)}</b></span></div>
+        <div style="margin-bottom:8px"><span class="stars" data-action="rate" data-i="${i}">${'★'.repeat(s.rating)}${'☆'.repeat(5-s.rating)}</span></div>
+        ${s.notes?`<div style="font-size:12.5px;color:#46505f;margin-bottom:10px">“${esc(s.notes)}”</div>`:''}
+        <div class="fbrow">
+          <button class="fbtn ${s.fb==='love'?'on-love':''}" data-action="setfb" data-i="${i}" data-fb="love">❤ Love</button>
+          <button class="fbtn ${s.fb==='maybe'?'on-maybe':''}" data-action="setfb" data-i="${i}" data-fb="maybe">Maybe</button>
+          <button class="fbtn ${s.fb==='pass'?'on-pass':''}" data-action="setfb" data-i="${i}" data-fb="pass">Pass</button>
+        </div>
+      </div>
+    </div>`).join('') || '<p class="note">No spaces yet — add the ones you’re touring.</p>';
+}
+function renderCompare(){
+  const t=tours[cur], S=t.spaces;
+  if(!S.length){ document.getElementById('cmp-table').innerHTML='<tr><td>No spaces to compare yet.</td></tr>'; return; }
+  const rows=[
+    ['Size (SF)', S.map(s=>s.sf), 'max'],
+    ['Asking rate', S.map(s=>s.rate), 'minrate'],
+    ['Clear height', S.map(s=>s.clear), 'max'],
+    ['Dock doors', S.map(s=>s.docks), 'max'],
+    ['Power', S.map(s=>s.power), null],
+    ['Office', S.map(s=>s.office), null],
+    ['Parking', S.map(s=>s.parking), null],
+    ['Client rating', S.map(s=>'★'.repeat(s.rating)||'—'), 'maxrating'],
+    ['Feedback', S.map(s=>`<span class="fb fb-${s.fb||'none'}">${FBLABEL[s.fb]}</span>`), null],
+  ];
+  let h='<tr><th>Attribute</th>'+S.map((s,i)=>`<th style="text-align:center">${i+1}. ${esc(s.addr)}</th>`).join('')+'</tr>';
+  rows.forEach(([label,vals,best])=>{
+    let bi=-1;
+    if(best==='max'){ let mx=-1; vals.forEach((v,i)=>{const n=num(v); if(n>mx){mx=n;bi=i;}}); }
+    else if(best==='minrate'){ let mn=1e9; vals.forEach((v,i)=>{const n=parseFloat((v||'').replace(/[^0-9.]/g,''))||1e9; if(n<mn){mn=n;bi=i;}}); }
+    else if(best==='maxrating'){ let mx=-1; S.forEach((s,i)=>{if(s.rating>mx){mx=s.rating;bi=i;}}); }
+    h+=`<tr><td>${label}</td>`+vals.map((v,i)=>`<td class="${i===bi?'best':''}">${v||'—'}</td>`).join('')+'</tr>';
+  });
+  document.getElementById('cmp-table').innerHTML=h;
+}
+function renderItin(){
+  const t=tours[cur];
+  document.getElementById('itin-list').innerHTML=t.spaces.map((s,i)=>`<div class="stop" data-n="${i+1}"><div class="t">${esc(s.time||'TBD')} — ${esc(s.addr)}</div><div class="a">${esc(s.city)} · ${esc(s.type)} · ${esc(s.sf)} SF</div></div>`).join('')||'<p class="note">Add spaces to build the itinerary.</p>';
+  const el=document.getElementById('tour-map');
+  if(typeof L==='undefined'){el.innerHTML='<div style="padding:24px;color:var(--muted)">Open in a browser for the map.</div>';return;}
+  if(!tourMap){ el.innerHTML=''; tourMap=L.map(el,{scrollWheelZoom:false}).setView([37.7,-121.9],9);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(tourMap); tourLayer=L.layerGroup().addTo(tourMap); }
+  tourLayer.clearLayers(); const pts=[];
+  t.spaces.forEach((s,i)=>{ if(!s.lat)return; const m=L.marker([s.lat,s.lng]); m.bindTooltip(`${i+1}. ${esc(s.addr)} (${esc(s.time)})`,{permanent:true,direction:'right',className:'',offset:[8,0]}); tourLayer.addLayer(m); pts.push([s.lat,s.lng]); });
+  if(pts.length){ if(pts.length>1) tourLayer.addLayer(L.polyline(pts,{color:'#2b7fd4',weight:3,opacity:.6,dashArray:'6 6'})); tourMap.fitBounds(pts,{padding:[40,40],maxZoom:11}); }
+  setTimeout(()=>tourMap.invalidateSize(),60);
+}
+
+// ---- feedback / rating ----
+function setFb(i,fb){ const s=tours[cur].spaces[i]; s.fb=(s.fb===fb)?'':fb; renderSpaces(); toast('Feedback: '+FBLABEL[s.fb]); }
+function rate(i){ const s=tours[cur].spaces[i]; s.rating=(s.rating>=5)?1:s.rating+1; renderSpaces(); }
+
+// ---- add space ----
+function openAddSpace(){ ['s-addr','s-city','s-sf','s-rate','s-clear','s-docks','s-power','s-time'].forEach(id=>document.getElementById(id).value=''); document.getElementById('addspace-modal').classList.add('show'); }
+function saveSpace(){
+  const g=id=>document.getElementById(id).value.trim();
+  if(!g('s-addr')){toast('Enter an address');return;}
+  const t=tours[cur]; const ph=U(PHOTOS[(t.spaces.length+t.id*2)%PHOTOS.length]);
+  t.spaces.push({addr:g('s-addr'),city:g('s-city'),type:document.getElementById('s-type').value,sf:g('s-sf'),rate:g('s-rate'),clear:g('s-clear'),docks:g('s-docks'),power:g('s-power'),office:'—',parking:'—',time:g('s-time'),lat:null,lng:null,rating:0,fb:'',notes:'',ph});
+  document.getElementById('addspace-modal').classList.remove('show'); renderSpaces(); toast('Space added ✓');
+}
+// ---- new tour ----
+function openNewTour(){ ['nt-client','nt-contact','nt-date','nt-need'].forEach(id=>document.getElementById(id).value=''); document.getElementById('tour-modal').classList.add('show'); }
+function saveTour(){
+  const g=id=>document.getElementById(id).value.trim();
+  if(!g('nt-client')){toast('Enter a client');return;}
+  tours.push({id:tours.length,client:g('nt-client'),contact:g('nt-contact'),need:g('nt-need'),date:g('nt-date')||'TBD',status:'scheduled',spaces:[]});
+  document.getElementById('tour-modal').classList.remove('show'); renderTours(); toast('Tour created ✓'); openTour(tours.length-1);
+}
+
+// ---- generators ----
+function buildBook(t){
+  const cover=`<div class="page cover"><div class="brand">${esc(BRAND.firm)}</div><h1>Tour Book</h1>
+    <div class="for">Prepared for<br><b>${esc(t.client)}</b> · ${esc(t.contact)}</div>
+    <div class="req">${esc(t.need)}</div><div class="date">${esc(t.date)} &nbsp;·&nbsp; ${t.spaces.length} spaces</div>
+    <div class="rep">${esc(REP.name)} · ${esc(REP.phone)} · ${esc(REP.email)}</div></div>`;
+  const pages=t.spaces.map((s,i)=>`<div class="page"><div class="hero" style="background-image:url('${s.ph}')"><div class="ov"><span class="chip">${i+1} of ${t.spaces.length}</span><h2>${esc(s.addr)}</h2><div class="sub">${esc(s.city)} · ${esc(s.type)}</div></div></div>
+    <div class="pb"><div class="rate">${esc(s.rate)} · ${esc(s.sf)} SF</div>
+    <div class="grid"><div><span>Clear Height</span><b>${esc(s.clear)}</b></div><div><span>Dock Doors</span><b>${esc(s.docks)}</b></div><div><span>Power</span><b>${esc(s.power)}</b></div><div><span>Office</span><b>${esc(s.office)}</b></div><div><span>Parking</span><b>${esc(s.parking)}</b></div><div><span>Tour Time</span><b>${esc(s.time)}</b></div></div>
+    ${s.notes?`<div class="nt"><b>Rep notes:</b> ${esc(s.notes)}</div>`:''}</div></div>`).join('');
+  const cmpRows=[['Size',t.spaces.map(s=>s.sf)],['Rate',t.spaces.map(s=>s.rate)],['Clear',t.spaces.map(s=>s.clear)],['Docks',t.spaces.map(s=>s.docks)],['Power',t.spaces.map(s=>s.power)]];
+  const cmp=`<div class="page"><h2 class="ch">Side-by-Side Comparison</h2><table><tr><th>Attribute</th>${t.spaces.map((s,i)=>`<th>${i+1}. ${esc(s.addr)}</th>`).join('')}</tr>${cmpRows.map(([l,v])=>`<tr><td>${l}</td>${v.map(x=>`<td>${esc(x)||'—'}</td>`).join('')}</tr>`).join('')}</table></div>`;
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+  @page{size:Letter;margin:0}*{box-sizing:border-box;margin:0;padding:0}body{font-family:Georgia,serif;color:${BRAND.ink}}
+  .page{width:8.5in;min-height:11in;padding:.7in;position:relative;page-break-after:always}
+  .cover{background:${BRAND.accent};color:#fff;display:flex;flex-direction:column;justify-content:center}
+  .cover .brand{font-family:Arial;font-weight:700;letter-spacing:1px;opacity:.85}
+  .cover h1{font-size:46pt;margin:14px 0}
+  .cover .for{font-size:14pt;margin-top:30px;line-height:1.5}.cover .req{margin-top:16px;font-style:italic;opacity:.9;font-size:12pt}
+  .cover .date{margin-top:8px;font-family:Arial;font-size:11pt}.cover .rep{position:absolute;bottom:.7in;left:.7in;font-family:Arial;font-size:10pt;opacity:.85}
+  .hero{height:3in;border-radius:8px;overflow:hidden;background-size:cover;background-position:center;display:flex;align-items:flex-end;margin-bottom:18px}
+  .hero .ov{width:100%;background:linear-gradient(transparent,rgba(0,0,0,.7));color:#fff;padding:30px 18px 16px}
+  .chip{background:${BRAND.accent2};font-family:Arial;font-size:8pt;font-weight:700;padding:3px 9px;border-radius:3px}
+  .hero h2{font-size:22pt;margin-top:6px}.hero .sub{font-family:Arial;font-size:10.5pt;opacity:.9}
+  .rate{font-family:Arial;font-size:15pt;font-weight:700;color:${BRAND.accent};margin-bottom:14px}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;font-family:Arial}
+  .grid div{border-bottom:1px solid #dde3ea;padding-bottom:6px}.grid span{display:block;color:#6b7280;font-size:8.5pt;text-transform:uppercase}.grid b{font-size:12pt}
+  .nt{margin-top:18px;background:#eef3fb;border-left:4px solid ${BRAND.accent2};padding:12px;font-size:11pt}
+  .ch{font-size:18pt;color:${BRAND.accent};border-bottom:2px solid ${BRAND.accent};padding-bottom:6px;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-family:Arial;font-size:10pt}td,th{border:1px solid #dde3ea;padding:9px;text-align:left}th{background:#eef3fb;color:${BRAND.accent}}
+  </style></head><body>${cover}${pages}${cmp}</body></html>`;
+}
+function buildSite(t){
+  const cards=t.spaces.map((s,i)=>`<div class="sp"><div class="hero" style="background-image:url('${s.ph}')"></div>
+    <div class="b"><div class="h"><div><h3>${esc(s.addr)}</h3><div class="m">${esc(s.city)} · ${esc(s.type)} · ${esc(s.sf)} SF</div></div><div class="rt">${esc(s.rate)}</div></div>
+    <div class="g"><span>${esc(s.clear)} clear</span><span>${esc(s.docks)} docks</span><span>${esc(s.power)}</span></div>
+    <div class="fb"><span>Your take:</span><button class="love">❤ Love</button><button class="maybe">Maybe</button><button class="pass">Pass</button></div>
+    <textarea placeholder="Add a comment for ${esc(REP.name)}…"></textarea></div></div>`).join('');
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+  *{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#eef1f5;color:${BRAND.ink}}
+  .wrap{max-width:760px;margin:0 auto;background:#fff}
+  .nav{background:${BRAND.accent};color:#fff;padding:16px 22px;font-weight:700}
+  .head{padding:22px;border-bottom:1px solid #e2e6ec}.head h1{font-size:22px}.head .req{color:#697586;margin-top:6px}.head .for{margin-top:6px;font-size:13px;color:#697586}
+  .sp{border-bottom:1px solid #e2e6ec}.hero{height:240px;background-size:cover;background-position:center}
+  .b{padding:18px 22px}.h{display:flex;justify-content:space-between;align-items:flex-start}.h h3{font-size:18px}.h .m{color:#697586;font-size:13px;margin-top:3px}.h .rt{font-weight:800;color:${BRAND.accent}}
+  .g{display:flex;gap:14px;color:#697586;font-size:13px;margin:10px 0}
+  .fb{display:flex;align-items:center;gap:8px;margin:8px 0}.fb span{color:#697586;font-size:13px;margin-right:4px}
+  .fb button{border:1px solid #d3dae2;background:#fff;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer;font-size:13px}
+  .fb .love:hover{background:#2f9e6b;color:#fff;border-color:#2f9e6b}.fb .maybe:hover{background:#e08a2b;color:#fff;border-color:#e08a2b}.fb .pass:hover{background:#9aa3af;color:#fff;border-color:#9aa3af}
+  textarea{width:100%;margin-top:10px;border:1px solid #d3dae2;border-radius:8px;padding:10px;font-family:inherit;font-size:13px;min-height:54px}
+  .ft{background:${BRAND.accent};color:#fff;padding:18px 22px;font-size:13px}
+  </style></head><body><div class="wrap">
+  <div class="nav">${esc(BRAND.firm)}</div>
+  <div class="head"><h1>Your Space Tour</h1><div class="req">${esc(t.need)}</div><div class="for">Prepared for ${esc(t.client)} · ${esc(t.date)}</div></div>
+  ${cards}
+  <div class="ft"><b>${esc(REP.name)}</b> · ${esc(REP.phone)} · ${esc(REP.email)}<br><span style="opacity:.8;font-size:11px">Tap Love / Maybe / Pass and leave comments — your rep sees them instantly.</span></div>
+  </div></body></html>`;
+}
+function genBook(kind){
+  const t=tours[cur];
+  if(!t.spaces.length){toast('Add at least one space first');return;}
+  const html=kind==='book'?buildBook(t):buildSite(t);
+  lastGen={html,kind,name:kind==='book'?'tour-book.html':'client-site.html'};
+  document.getElementById('gen-frame').srcdoc=html;
+  document.getElementById('gen-pill').innerHTML=kind==='book'?'📕 Tour Book generated from this tour — Open full size, then print to PDF.':'🌐 Client microsite generated — share the link; your client rates &amp; comments live.';
+  document.getElementById('gen-copy').style.display=kind==='site'?'':'none';
+  document.getElementById('gen-out').classList.add('show');
+  document.getElementById('gen-out').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function openGen(){ if(!lastGen.html)return; const f=document.getElementById('gen-modal-frame');
+  const dims=lastGen.kind==='book'?['8.5in','11in']:['780px','1500px']; f.style.width=dims[0]; f.style.height=dims[1];
+  f.srcdoc=lastGen.html; document.getElementById('gen-modal-title').textContent=lastGen.name+' — full size'; document.getElementById('gen-modal').classList.add('show'); }
+function printGen(){ const f=document.getElementById('gen-modal-frame'); try{f.contentWindow.focus();f.contentWindow.print();}catch(e){toast('Press Ctrl/Cmd+P');} }
+
+// ---- delegation ----
+document.addEventListener('click',e=>{
+  const el=e.target.closest('[data-action]'); if(!el)return;
+  const a=el.dataset.action;
+  if(a==='nav') go(el.dataset.view);
+  else if(a==='opent'||a==='openTour') openTour(+el.dataset.id);
+  else if(a==='ttab') ttab(el.dataset.tab);
+  else if(a==='setfb') setFb(+el.dataset.i, el.dataset.fb);
+  else if(a==='rate') rate(+el.dataset.i);
+  else if(a==='addspace') openAddSpace();
+  else if(a==='assave') saveSpace();
+  else if(a==='ascancel') document.getElementById('addspace-modal').classList.remove('show');
+  else if(a==='newtour') openNewTour();
+  else if(a==='ntsave') saveTour();
+  else if(a==='ntcancel') document.getElementById('tour-modal').classList.remove('show');
+  else if(a==='genbook') genBook(el.dataset.kind);
+  else if(a==='genopen') openGen();
+  else if(a==='gencopy') toast('Share link copied ✓');
+  else if(a==='genclose') document.getElementById('gen-modal').classList.remove('show');
+  else if(a==='genprint') printGen();
+});
+let tt; function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2200);}
+
+// ---- init ----
+renderDash();
+</script>
+</body>
+</html>
